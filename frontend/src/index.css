@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  
+  --color-border: #E2E8F0;
+  
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+  --shadow-dropdown: 0 4px 16px -2px rgb(0 0 0 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.08);
+}
+
+@layer base {
+  * {
+    @apply border-[#E2E8F0];
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    @apply font-sans antialiased;
+  }
+
+  body {
+    @apply bg-white text-[#0F172A];
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400; }
+}
+
+@layer components {
+  .card {
+    @apply bg-white border border-[#E2E8F0] rounded-xl shadow-card;
+  }
+
+  .btn-primary {
+    @apply bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors duration-150;
+  }
+
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 text-[#0F172A] font-medium text-sm px-4 py-2 rounded-lg border border-[#E2E8F0] transition-colors duration-150;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 text-sm border border-[#E2E8F0] rounded-lg bg-white placeholder:text-[#94A3B8] 
+           focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all duration-150;
+  }
+
+  .select {
+    @apply w-full px-3 py-2 text-sm border border-[#E2E8F0] rounded-lg bg-white 
+           focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all duration-150;
+  }
+
+  .label {
+    @apply text-xs font-medium text-[#64748B] uppercase tracking-wide;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#64748B]
+           hover:bg-[#F8FAFC] hover:text-[#0F172A] transition-all duration-150 cursor-pointer;
+  }
+
+  .nav-item-active {
+    @apply bg-[#EFF6FF] text-[#2563EB] hover:bg-[#EFF6FF] hover:text-[#2563EB];
+  }
+
+  .table-row {
+    @apply border-b border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors duration-100;
+  }
+
+  .page-header {
+    @apply mb-8;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-[#0F172A];
+  }
+
+  .page-subtitle {
+    @apply text-sm text-[#64748B] mt-1;
+  }
+}
