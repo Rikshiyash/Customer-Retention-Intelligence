@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import joblib
 import xgboost as xgb
-from fastapi import FastAPI, Query, UploadFile, File
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+import os, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
@@ -152,6 +154,18 @@ def load_data():
 @app.on_event("startup")
 def startup_event():
     load_data()
+
+@app.get("/api/subscriber/{subscriber_id}")
+def get_subscriber(subscriber_id: str):
+    global df
+    if df is None or df.empty:
+        raise HTTPException(status_code=404, detail="Data not loaded")
+    
+    sub = df[df['subscriber_id'] == subscriber_id]
+    if sub.empty:
+        raise HTTPException(status_code=404, detail="Subscriber not found")
+        
+    return sub.iloc[0].to_dict()
 
 @app.get("/api/subscribers")
 def get_subscribers(
@@ -304,13 +318,32 @@ def get_subscriber(subscriber_id: str):
 
 @app.get("/api/leaderboard")
 def get_leaderboard():
-    return [
-        {"agent_name": "Arun Panchal", "subscribers_contacted": 85, "subscribers_retained": 52, "revenue_saved": 41500, "rank": 1},
-        {"agent_name": "Priya Sharma", "subscribers_contacted": 72, "subscribers_retained": 41, "revenue_saved": 32000, "rank": 2},
-        {"agent_name": "Rahul Verma", "subscribers_contacted": 64, "subscribers_retained": 35, "revenue_saved": 28500, "rank": 3},
-        {"agent_name": "Neha Gupta", "subscribers_contacted": 55, "subscribers_retained": 28, "revenue_saved": 21000, "rank": 4},
-        {"agent_name": "Vikram Singh", "subscribers_contacted": 42, "subscribers_retained": 19, "revenue_saved": 15000, "rank": 5}
+    base_contacted = 85
+    base_retained = 52
+    base_revenue = 41500
+    
+    file_path = "campaigns.json"
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            campaigns = json.load(f)
+            for c in campaigns:
+                base_contacted += c.get("contacted", 0)
+                base_retained += c.get("retained", 0)
+                base_revenue += c.get("retained", 0) * 500
+
+    leaderboard = [
+        {"agent_name": "Arun Panchal", "subscribers_contacted": base_contacted, "subscribers_retained": base_retained, "revenue_saved": base_revenue},
+        {"agent_name": "Priya Sharma", "subscribers_contacted": 72, "subscribers_retained": 41, "revenue_saved": 32000},
+        {"agent_name": "Rahul Verma", "subscribers_contacted": 64, "subscribers_retained": 35, "revenue_saved": 28500},
+        {"agent_name": "Neha Gupta", "subscribers_contacted": 55, "subscribers_retained": 28, "revenue_saved": 21000},
+        {"agent_name": "Vikram Singh", "subscribers_contacted": 42, "subscribers_retained": 19, "revenue_saved": 15000}
     ]
+    
+    leaderboard.sort(key=lambda x: x["revenue_saved"], reverse=True)
+    for i, agent in enumerate(leaderboard):
+        agent["rank"] = i + 1
+        
+    return leaderboard
 
 @app.post("/api/mark-contacted")
 def mark_contacted(req: ContactRequest):
@@ -409,7 +442,23 @@ def update_campaign(id: str, req: CampaignUpdateRequest):
     with open(file_path, "w") as f:
         json.dump(data, f, indent=4)
         
-    return {"status": "success"}
+    return {"status": "updated"}
+
+@app.delete("/api/campaigns/{id}")
+def delete_campaign(id: str):
+    file_path = "campaigns.json"
+    if not os.path.exists(file_path):
+        return {"error": "No campaigns found"}
+        
+    with open(file_path, "r") as f:
+        data = json.load(f)
+        
+    data = [c for c in data if c.get("id") != id]
+            
+    with open(file_path, "w") as f:
+        json.dump(data, f, indent=4)
+        
+    return {"status": "deleted"}
 
 @app.get("/api/notifications")
 def get_notifications():
@@ -547,6 +596,20 @@ def optimize_offer(req: OfferRequest):
         "reasoning": reasoning,
         "savings_vs_standard": savings_vs_standard
     }
+
+@app.get("/api/churn-trend")
+def get_churn_trend():
+    return [
+        {"month": "Jan", "historical_churn": 4.2, "predicted_churn": None, "revenue_saved": 12000},
+        {"month": "Feb", "historical_churn": 4.5, "predicted_churn": None, "revenue_saved": 15000},
+        {"month": "Mar", "historical_churn": 3.9, "predicted_churn": None, "revenue_saved": 21000},
+        {"month": "Apr", "historical_churn": 3.5, "predicted_churn": None, "revenue_saved": 28000},
+        {"month": "May", "historical_churn": 3.1, "predicted_churn": None, "revenue_saved": 35000},
+        {"month": "Jun", "historical_churn": 2.8, "predicted_churn": 2.8, "revenue_saved": 42000},
+        {"month": "Jul", "historical_churn": None, "predicted_churn": 2.5, "revenue_saved": 49000},
+        {"month": "Aug", "historical_churn": None, "predicted_churn": 2.1, "revenue_saved": 55000},
+        {"month": "Sep", "historical_churn": None, "predicted_churn": 1.8, "revenue_saved": 62000},
+    ]
 
 @app.get("/api/forecast")
 def get_forecast():
@@ -817,3 +880,9 @@ def get_executive_summary():
         "last_updated": last_updated,
         "churn_reasons_breakdown": df['churn_reasons'].value_counts().head(5).to_dict() if 'churn_reasons' in df.columns else {}
     }
+
+
+# Serve frontend static files
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")

@@ -1,12 +1,12 @@
 [
     {
-        "name": "H",
-        "risk_tier": "High",
-        "region": "All",
-        "package_type": "All",
+        "name": "Save Mumbai Highr Risk",
+        "risk_tier": "Medium",
+        "region": "Mumbai",
+        "package_type": "Basic",
         "status": "Active",
-        "id": "dfb1a668-9f3f-41b5-b1bf-09285a25ee6c",
-        "created_at": "2026-06-07T12:50:40.131391",
+        "id": "af2c8c6b-46ea-4439-8a18-e07fc88d2656",
+        "created_at": "2026-06-09T14:42:25.197498",
         "contacted": 0,
         "retained": 0,
         "churned": 0

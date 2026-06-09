@@ -1,4 +1,5 @@
 .env
 __pycache__/
 *.pyc
-*.pkl
+patch_*.py
+dashboard_diff.txt

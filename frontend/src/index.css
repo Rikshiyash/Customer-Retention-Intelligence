@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+
+
+
+
+
+/* Leaflet overrides for dark mode tooltips */
+.leaflet-tooltip {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.leaflet-tooltip::before {
+  display: none !important; /* hide the little triangle pointer if we want, or color it */
+}
+
+/* Ensure leaflet container background is dark while loading tiles */
+.leaflet-container {
+  background: #1a1d26 !important;
+}
+
