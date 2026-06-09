@@ -2,9 +2,8 @@ import pandas as pd
 import numpy as np
 import joblib
 import xgboost as xgb
-from fastapi import FastAPI
+from fastapi import FastAPI, Query, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-import os, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
