@@ -183,7 +183,7 @@ def get_subscribers(
     risk_tier: str = Query(None),
     search: str = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=1000)
+    page_size: int = Query(5, ge=1, le=1000)
 ):
     global df
     if df is None or df.empty:
