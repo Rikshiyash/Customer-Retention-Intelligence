@@ -105,6 +105,18 @@ export default function ChurnGuardDashboard() {
   const [uploadMessage, setUploadMessage] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Demo Add Subscriber State
+  const [isAddSubOpen, setIsAddSubOpen] = useState(false);
+  const [addSubForm, setAddSubForm] = useState({
+    subscriber_id: '', region: 'Mumbai', package_type: 'Standard',
+    tenure_months: 12, arpu: 350, complaint_count: 2,
+    last_active_date: new Date().toISOString().split('T')[0],
+    recharge_history: '300,350,280,400,320,310',
+  });
+  const [addSubLoading, setAddSubLoading] = useState(false);
+  const [addSubResult, setAddSubResult] = useState(null);  // null | { ...prediction }
+  const [addSubError, setAddSubError] = useState(null);
+
   // Notifications State
   const [notifications, setNotifications] = useState([]);
   const [readNotifs, setReadNotifs] = useState(() => {
@@ -114,6 +126,36 @@ export default function ChurnGuardDashboard() {
   const [isNotifPanelOpen, setIsNotifPanelOpen] = useState(false);
 
   const API_BASE = '/api';
+
+  const handleAddSubscriber = async () => {
+    if (!addSubForm.subscriber_id.trim()) return;
+    setAddSubLoading(true);
+    setAddSubResult(null);
+    setAddSubError(null);
+    try {
+      const res = await fetch('/api/add-subscriber', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...addSubForm,
+          tenure_months: parseInt(addSubForm.tenure_months),
+          arpu: parseFloat(addSubForm.arpu),
+          complaint_count: parseInt(addSubForm.complaint_count),
+        }),
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setAddSubResult(data);
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        setAddSubError(data.message || 'Unknown error');
+      }
+    } catch (err) {
+      setAddSubError('Network error: ' + err.message);
+    } finally {
+      setAddSubLoading(false);
+    }
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -509,6 +551,14 @@ export default function ChurnGuardDashboard() {
           <div className="flex items-center gap-4">
             <button onClick={toggleTheme} className="text-2xl hover:scale-110 transition-transform">
               {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            {/* ── DEMO: Add Subscriber Button ── */}
+            <button
+              id="add-subscriber-btn"
+              onClick={() => { setIsAddSubOpen(true); setAddSubResult(null); setAddSubError(null); }}
+              className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold px-4 py-2 rounded shadow-lg shadow-violet-900/40 transition-all hover:scale-[1.03] border border-violet-500/40"
+            >
+              ✨ Add Demo Subscriber
             </button>
             <label className={`flex items-center gap-2 px-4 py-2 rounded transition-colors cursor-pointer border ${isUploading ? 'bg-gray-800 border-gray-800 text-gray-400' : 'bg-[#1a1d26] border-gray-800 text-gray-300 hover:border-[#f59e0b] hover:text-[#f59e0b]'}`}>
               <input 
@@ -1272,6 +1322,249 @@ export default function ChurnGuardDashboard() {
                     )})}
                   </tbody>
                 </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════
+           DEMO ADD SUBSCRIBER MODAL
+      ════════════════════════════════════════════════════════════ */}
+      {isAddSubOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4"
+          onClick={() => setIsAddSubOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl bg-[#0f1117] border border-violet-500/30 rounded-2xl shadow-2xl shadow-violet-900/40 relative overflow-hidden"
+            onClick={e => e.stopPropagation()}
+            style={{ maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            {/* Decorative gradient bar */}
+            <div className="h-1 w-full bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500" />
+
+            <div className="p-8">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="font-syne text-2xl text-white font-bold flex items-center gap-2">
+                    <span className="text-2xl">✨</span> Add Demo Subscriber
+                  </h2>
+                  <p className="text-gray-400 text-sm mt-1">Enter details below. The AI model will predict churn risk instantly.</p>
+                </div>
+                <button
+                  onClick={() => setIsAddSubOpen(false)}
+                  className="text-gray-400 hover:text-white text-2xl leading-none transition-colors"
+                >✕</button>
+              </div>
+
+              {/* Result Card — shown after prediction */}
+              {addSubResult && (
+                <div className={`mb-6 p-5 rounded-xl border-2 animate-in fade-in slide-in-from-top-2 duration-300 ${
+                  addSubResult.risk_tier === 'High'   ? 'border-red-500/60 bg-red-500/10' :
+                  addSubResult.risk_tier === 'Medium' ? 'border-yellow-500/60 bg-yellow-500/10' :
+                                                        'border-green-500/60 bg-green-500/10'
+                }`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="text-xs text-gray-400 uppercase tracking-widest mb-1">Prediction Result</div>
+                      <div className="font-syne text-xl text-white font-bold">{addSubResult.subscriber_id}</div>
+                    </div>
+                    <div className={`text-4xl font-syne font-black ${
+                      addSubResult.risk_tier === 'High'   ? 'text-red-500' :
+                      addSubResult.risk_tier === 'Medium' ? 'text-yellow-500' : 'text-green-500'
+                    }`}>
+                      {(addSubResult.churn_probability * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-black/30 rounded-lg p-3">
+                      <div className="text-gray-400 text-xs uppercase mb-1">Risk Tier</div>
+                      <span className={`font-bold text-base ${
+                        addSubResult.risk_tier === 'High'   ? 'text-red-400' :
+                        addSubResult.risk_tier === 'Medium' ? 'text-yellow-400' : 'text-green-400'
+                      }`}>
+                        {addSubResult.risk_tier === 'High' ? '🔴' : addSubResult.risk_tier === 'Medium' ? '🟡' : '🟢'} {addSubResult.risk_tier} Risk
+                      </span>
+                    </div>
+                    <div className="bg-black/30 rounded-lg p-3">
+                      <div className="text-gray-400 text-xs uppercase mb-1">Days Inactive</div>
+                      <span className="text-white font-bold text-base">{addSubResult.days_since_active}d</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 bg-black/30 rounded-lg p-3">
+                    <div className="text-gray-400 text-xs uppercase mb-1">Top Churn Drivers</div>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {addSubResult.churn_reasons?.split(', ').map((r, i) => (
+                        <span key={i} className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full border border-gray-700">⚠️ {r}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-3 bg-black/30 rounded-lg p-3">
+                    <div className="text-gray-400 text-xs uppercase mb-1">Recommended Action</div>
+                    <div className="text-[#f59e0b] font-medium text-sm">{addSubResult.recommended_action}</div>
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      onClick={() => { setIsAddSubOpen(false); setSearchFilter(addSubResult.subscriber_id); }}
+                      className="flex-1 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg transition-colors text-sm"
+                    >
+                      View in Table →
+                    </button>
+                    <button
+                      onClick={() => { setAddSubResult(null); setAddSubForm({ subscriber_id: '', region: 'Mumbai', package_type: 'Standard', tenure_months: 12, arpu: 350, complaint_count: 2, last_active_date: new Date().toISOString().split('T')[0], recharge_history: '300,350,280,400,320,310' }); }}
+                      className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm"
+                    >
+                      Add Another
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {addSubError && (
+                <div className="mb-5 p-4 bg-red-500/10 border border-red-500/40 rounded-xl text-red-400 text-sm">
+                  ❌ {addSubError}
+                </div>
+              )}
+
+              {/* Form — hide once result shown */}
+              {!addSubResult && (
+                <div className="space-y-5">
+                  {/* Row 1: ID */}
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                      Subscriber ID <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      id="add-sub-id"
+                      type="text"
+                      value={addSubForm.subscriber_id}
+                      onChange={e => setAddSubForm({...addSubForm, subscriber_id: e.target.value})}
+                      placeholder="e.g. SUB-99999"
+                      className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                    />
+                  </div>
+
+                  {/* Row 2: Region + Package */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1.5">Region</label>
+                      <select
+                        id="add-sub-region"
+                        value={addSubForm.region}
+                        onChange={e => setAddSubForm({...addSubForm, region: e.target.value})}
+                        className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                      >
+                        {['Mumbai','Delhi','Bangalore','Chennai','Kolkata','Hyderabad','Pune','Ahmedabad','Jaipur','Lucknow'].map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1.5">Package Type</label>
+                      <select
+                        id="add-sub-package"
+                        value={addSubForm.package_type}
+                        onChange={e => setAddSubForm({...addSubForm, package_type: e.target.value})}
+                        className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                      >
+                        <option value="Basic">Basic</option>
+                        <option value="Standard">Standard</option>
+                        <option value="Premium">Premium</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Tenure + ARPU */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1.5">Tenure (months)</label>
+                      <input
+                        id="add-sub-tenure"
+                        type="number" min="1" max="120"
+                        value={addSubForm.tenure_months}
+                        onChange={e => setAddSubForm({...addSubForm, tenure_months: e.target.value})}
+                        className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1.5">ARPU (₹/month)</label>
+                      <input
+                        id="add-sub-arpu"
+                        type="number" min="0" step="10"
+                        value={addSubForm.arpu}
+                        onChange={e => setAddSubForm({...addSubForm, arpu: e.target.value})}
+                        className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 4: Complaints + Last Active Date */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1.5">Complaint Count</label>
+                      <input
+                        id="add-sub-complaints"
+                        type="number" min="0" max="50"
+                        value={addSubForm.complaint_count}
+                        onChange={e => setAddSubForm({...addSubForm, complaint_count: e.target.value})}
+                        className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1.5">Last Active Date</label>
+                      <input
+                        id="add-sub-last-active"
+                        type="date"
+                        value={addSubForm.last_active_date}
+                        onChange={e => setAddSubForm({...addSubForm, last_active_date: e.target.value})}
+                        className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 5: Recharge History */}
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                      Recharge History
+                      <span className="text-gray-500 text-xs font-normal ml-2">(comma-separated ₹ amounts, last 6 months)</span>
+                    </label>
+                    <input
+                      id="add-sub-recharge"
+                      type="text"
+                      value={addSubForm.recharge_history}
+                      onChange={e => setAddSubForm({...addSubForm, recharge_history: e.target.value})}
+                      placeholder="e.g. 300,350,280,400,320,310"
+                      className="w-full bg-[#1a1d26] border border-gray-700 focus:border-violet-500 text-white rounded-lg px-4 py-2.5 outline-none transition-colors text-sm font-mono"
+                    />
+                    {/* Mini preview bar */}
+                    {addSubForm.recharge_history && (
+                      <div className="flex gap-1 mt-2 items-end h-6">
+                        {addSubForm.recharge_history.split(',').map((v, i) => {
+                          const vals = addSubForm.recharge_history.split(',').map(Number).filter(n => !isNaN(n));
+                          const max  = Math.max(...vals, 1);
+                          const pct  = (parseFloat(v) / max) * 100;
+                          return <div key={i} className="flex-1 bg-violet-500/70 rounded-sm transition-all" style={{ height: `${pct}%`, minHeight: '4px' }} />;
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    id="add-sub-predict-btn"
+                    onClick={handleAddSubscriber}
+                    disabled={addSubLoading || !addSubForm.subscriber_id.trim()}
+                    className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-900/40 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                  >
+                    {addSubLoading ? (
+                      <><span className="animate-spin">↻</span> Running AI Prediction...</>
+                    ) : (
+                      <><span>⚡</span> Predict Risk & Add to List</>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>

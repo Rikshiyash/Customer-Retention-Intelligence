@@ -44,6 +44,16 @@ class CampaignUpdateRequest(BaseModel):
     retained: int
     churned: int
 
+class AddSubscriberRequest(BaseModel):
+    subscriber_id: str
+    region: str
+    package_type: str
+    tenure_months: int
+    arpu: float
+    complaint_count: int
+    last_active_date: str          # YYYY-MM-DD
+    recharge_history: str          # comma-separated amounts e.g. "300,350,280,400,320,310"
+
 app = FastAPI(title="ChurnGuard API")
 
 app.add_middleware(
@@ -720,6 +730,118 @@ async def upload_file(file: UploadFile = File(...)):
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
+
+@app.post("/api/add-subscriber")
+def add_subscriber(req: AddSubscriberRequest):
+    """Accept a single subscriber's details, score them with the ML model, and append to the dataset."""
+    global df
+    try:
+        # ── 1. Build a one-row DataFrame ────────────────────────────────────────
+        row = {
+            "subscriber_id": req.subscriber_id,
+            "region":         req.region,
+            "package_type":   req.package_type,
+            "tenure_months":  req.tenure_months,
+            "arpu":           req.arpu,
+            "complaint_count": req.complaint_count,
+            "last_active_date": req.last_active_date,
+            "recharge_history": req.recharge_history,
+            "churn": 0,          # unknown – will be determined by model
+        }
+        new_df = pd.DataFrame([row])
+
+        # ── 2. Feature engineering ───────────────────────────────────────────────
+        rh = parse_recharge(req.recharge_history)
+        new_df['avg_recharge']    = rh[0]
+        new_df['min_recharge']    = rh[1]
+        new_df['recharge_trend']  = rh[2]
+
+        ref_date = pd.Timestamp(req.last_active_date)
+        today    = pd.Timestamp.now().normalize()
+        new_df['days_since_active'] = (today - ref_date).days
+
+        # Derive label encodings from the already-loaded df to avoid the
+        # CustomLabelEncoder pickle class-not-found error.
+        # The encoding is alphabetical order (same as np.unique used in training).
+        if df is not None and not df.empty:
+            region_map  = {r: int(e) for r, e in zip(df['region'],  df['region_enc'])  if pd.notna(e)}
+            package_map = {p: int(e) for p, e in zip(df['package_type'], df['package_enc']) if pd.notna(e)}
+        else:
+            # Fallback: compute from sorted unique values (mirrors CustomLabelEncoder)
+            all_regions  = sorted(['Mumbai','Delhi','Bangalore','Chennai','Kolkata',
+                                   'Hyderabad','Pune','Ahmedabad','Jaipur','Lucknow'])
+            all_packages = sorted(['Basic','Standard','Premium'])
+            region_map   = {r: i for i, r in enumerate(all_regions)}
+            package_map  = {p: i for i, p in enumerate(all_packages)}
+
+        new_df['region_enc']  = region_map.get(req.region,  0)
+        new_df['package_enc'] = package_map.get(req.package_type, 0)
+
+        # ── 3. Model prediction ─────────────────────────────────────────────────
+        features = ['avg_recharge','min_recharge','recharge_trend','complaint_count',
+                    'days_since_active','tenure_months','arpu','region_enc','package_enc']
+        X = new_df[features]
+
+        model   = joblib.load('churn_model.pkl')
+        dmatrix = xgb.DMatrix(X)
+        prob    = float(model.predict(dmatrix)[0])
+        new_df['churn_probability'] = prob
+
+        def get_risk_tier(p):
+            if p > 0.65: return 'High'
+            elif p >= 0.35: return 'Medium'
+            else: return 'Low'
+        risk_tier = get_risk_tier(prob)
+        new_df['risk_tier'] = risk_tier
+
+        # ── 4. SHAP-based churn reasons ──────────────────────────────────────────
+        reason_map = {
+            'complaint_count':'High complaints','days_since_active':'Recent inactivity',
+            'avg_recharge':'Low avg recharge','recharge_trend':'Declining recharges',
+            'arpu':'Low revenue value','tenure_months':'Short tenure',
+            'min_recharge':'Low min recharge','region_enc':'Region factor',
+            'package_enc':'Package factor'
+        }
+        contribs   = model.predict(dmatrix, pred_contribs=True)
+        shap_vals  = contribs[0, :-1]
+        top_idx    = np.argsort(np.abs(shap_vals))[-3:][::-1]
+        reasons    = ", ".join(reason_map.get(features[i], features[i]) for i in top_idx)
+        new_df['churn_reasons'] = reasons
+
+        # ── 5. Recommendation ────────────────────────────────────────────────────
+        new_df['recommended_action'] = new_df.apply(get_recommendation, axis=1)
+
+        # ── 6. Sentiment & complaint_text stubs ─────────────────────────────────
+        new_df['complaint_text'] = ""
+        new_df['sentiment']      = "Neutral"
+
+        # ── 7. Append to CSV and reload in-memory data ───────────────────────────
+        csv_path = 'subscribers_final.csv'
+        # Remove duplicate subscriber_id if re-adding
+        if df is not None and not df.empty:
+            existing = df[df['subscriber_id'] != req.subscriber_id]
+            updated  = pd.concat([existing, new_df], ignore_index=True)
+        else:
+            updated = new_df
+
+        updated.to_csv(csv_path, index=False)
+        load_data()
+
+        return {
+            "status":             "success",
+            "subscriber_id":      req.subscriber_id,
+            "churn_probability":  round(prob, 4),
+            "risk_tier":          risk_tier,
+            "churn_reasons":      reasons,
+            "recommended_action": new_df['recommended_action'].iloc[0],
+            "days_since_active":  int(new_df['days_since_active'].iloc[0]),
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn
