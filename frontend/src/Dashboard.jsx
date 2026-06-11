@@ -510,7 +510,7 @@ export default function ChurnGuardDashboard() {
   };
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-[#0f1117] text-gray-300" : "bg-gray-50 text-gray-800"} font-mono p-6`}>
+    <div className={`min-h-screen ${theme === "dark" ? "bg-[#0f1117] text-gray-300" : "bg-gray-50 text-gray-800"} font-mono p-4 sm:p-6`}>
       {/* Import Fonts */}
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap');
@@ -541,14 +541,14 @@ export default function ChurnGuardDashboard() {
             <style>{`@keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }`}</style>
           </div>
         )}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-syne font-bold text-white flex items-center gap-3">
+            <h1 className="text-4xl sm:text-5xl font-syne font-bold text-white flex items-center gap-3">
               <span className="text-[#f59e0b]">⚡</span> ChurnGuard
             </h1>
             <p className="text-gray-400 mt-1 uppercase tracking-wider text-sm">DTH Subscriber Intelligence</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap gap-3 items-center justify-end">
             <button onClick={toggleTheme} className="text-2xl hover:scale-110 transition-transform">
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -586,7 +586,7 @@ export default function ChurnGuardDashboard() {
       </header>
 
       {/* 2. SUMMARY CARDS ROW */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         {[
           { label: "Total Subscribers", value: summaryLoading ? "..." : summary?.total_subscribers?.toLocaleString(), icon: "👥" },
           { label: "High Risk", value: summaryLoading ? "..." : summary?.churn_high_count?.toLocaleString(), color: "text-red-500", icon: "🔴" },
@@ -611,7 +611,7 @@ export default function ChurnGuardDashboard() {
             <span className="text-[#f59e0b]">Loading map data...</span>
           </div>
         ) : (
-          <div className="relative w-full h-[350px] rounded-xl z-0">
+          <div className="relative w-full h-[260px] sm:h-[320px] md:h-[350px] rounded-xl z-0">
             <MapContainer center={[24.0, 78.9629]} zoom={4.5} style={{ height: "100%", width: "100%", background: "#1a1d26", borderRadius: "0.5rem" }} zoomControl={false} scrollWheelZoom={false}>
               <TileLayer
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -682,7 +682,7 @@ export default function ChurnGuardDashboard() {
       {/* CHURN TREND GRAPH */}
       <div className="bg-[#1a1d26] border border-gray-800 rounded-xl p-6 mb-8">
         <h2 className="font-syne text-xl text-white mb-4 border-b border-gray-800 pb-2">📈 Historical vs Predicted Churn & Revenue Impact</h2>
-        <div className="h-[350px] w-full">
+        <div className="h-[260px] sm:h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={churnTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -872,18 +872,18 @@ export default function ChurnGuardDashboard() {
       {/* 3. AT-RISK SUBSCRIBER TABLE */}
       <div className="bg-[#1a1d26] border border-gray-800 rounded-xl flex flex-col flex-1 overflow-hidden">
         {/* Filter Bar */}
-        <div className="p-4 border-b border-gray-800 flex flex-wrap gap-4 items-center bg-[#13151c]">
+        <div className="p-4 border-b border-gray-800 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center bg-[#13151c]">
           <input 
             type="text" 
             placeholder="Search Subscriber ID..." 
             value={searchFilter}
             onChange={(e) => { setSearchFilter(e.target.value); setPage(1); }}
-            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm flex-1 min-w-[200px]"
+            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm w-full sm:w-auto min-w-[160px]"
           />
           <select 
-            value={riskFilter => setTierFilter(e.target.value)}
+            value={tierFilter}
             onChange={(e) => { setTierFilter(e.target.value); setPage(1); }}
-            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm"
+            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm w-full sm:w-auto"
           >
             <option value="">All Risks</option>
             <option value="High">High Risk</option>
@@ -893,7 +893,7 @@ export default function ChurnGuardDashboard() {
           <select 
             value={regionFilter}
             onChange={(e) => { setRegionFilter(e.target.value); setPage(1); }}
-            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm"
+            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm w-full sm:w-auto"
           >
             <option value="">All Regions</option>
             {/* Hardcoded based on data gen script, or could fetch from /api/regional */}
@@ -904,7 +904,7 @@ export default function ChurnGuardDashboard() {
           <select 
             value={packageFilter}
             onChange={(e) => { setPackageFilter(e.target.value); setPage(1); }}
-            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm"
+            className="bg-[#0f1117] border border-gray-800 text-white px-3 py-2 rounded outline-none focus:border-[#f59e0b] text-sm w-full sm:w-auto"
           >
             <option value="">All Packages</option>
             <option value="Basic">Basic</option>
@@ -915,7 +915,7 @@ export default function ChurnGuardDashboard() {
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
+          <table className="w-full text-left border-collapse min-w-full responsive-table">
             <thead>
               <tr className="bg-[#0f1117] border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider">
                 <th className="p-4 font-medium">Rank</th>
@@ -943,18 +943,18 @@ export default function ChurnGuardDashboard() {
               ) : (
                 subscribers.map((sub, idx) => (
                   <tr key={sub.subscriber_id} className={`hover:bg-gray-800/20 transition-colors group cursor-pointer ${theme === "dark" ? "hover:bg-gray-800/50" : "hover:bg-gray-100"}`} onClick={() => setSelectedSubscriberId(sub.subscriber_id)}>
-                    <td className="p-4 text-gray-400 text-sm">#{(page - 1) * 50 + idx + 1}</td>
-                    <td className="p-4 font-medium text-white">{sub.subscriber_id}</td>
-                    <td className="p-4 text-sm">
+                    <td data-label="Rank" className="p-4 text-gray-400 text-sm">#{(page - 1) * 50 + idx + 1}</td>
+                    <td data-label="Subscriber ID" className="p-4 font-medium text-white">{sub.subscriber_id}</td>
+                    <td data-label="Region / Package" className="p-4 text-sm">
                       <div className="text-gray-300">{sub.region}</div>
                       <div className="text-gray-400 text-xs">{sub.package_type}</div>
                     </td>
-                    <td className="p-4">
+                    <td data-label="Risk Tier" className="p-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getTierColor(sub.risk_tier)}`}>
                         {sub.risk_tier}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td data-label="Churn Prob." className="p-4">
                       <div className="flex items-center gap-2">
                         <div className="text-sm w-12 text-right">{(sub.churn_probability * 100).toFixed(1)}%</div>
                         <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
@@ -965,14 +965,14 @@ export default function ChurnGuardDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-xs text-gray-400 max-w-[200px] truncate" title={sub.churn_reasons}>
+                    <td data-label="Key Drivers" className="p-4 text-xs text-gray-400 max-w-[200px] truncate" title={sub.churn_reasons}>
                       {sub.churn_reasons?.split(', ').map((reason, i) => (
                         <span key={i} className="inline-block bg-gray-800 text-gray-300 px-2 py-0.5 rounded mr-1 mb-1 border border-gray-800">
                           {reason}
                         </span>
                       ))}
                     </td>
-                    <td className="p-4 text-sm text-[#f59e0b] max-w-[200px] truncate" title={sub.recommended_action}>
+                    <td data-label="Recommended Action" className="p-4 text-sm text-[#f59e0b] max-w-[200px] truncate" title={sub.recommended_action}>
                       {sub.recommended_action}
                     </td>
                   </tr>
@@ -983,7 +983,7 @@ export default function ChurnGuardDashboard() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-4 border-t border-gray-800 flex items-center justify-between bg-[#13151c]">
+        <div className="p-4 border-t border-gray-800 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between bg-[#13151c]">
           <div className="text-sm text-gray-400">
             Showing <span className="text-white">{(page - 1) * 50 + 1}</span> to <span className="text-white">{Math.min(page * 50, subTotal)}</span> of <span className="text-white">{subTotal}</span> results
           </div>
