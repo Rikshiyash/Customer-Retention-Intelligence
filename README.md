@@ -1,10 +1,8 @@
 # 🌟 ChurnGuard — Customer Retention Intelligence
 
-![Churn Dashboard](https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1200&q=80)
-
 > A beautiful analytics dashboard for telecom churn prediction, customer retention campaigns, and model-driven action planning.
 
-<br />
+[![Live Demo](https://img.shields.io/badge/Live%20Project-Render-orange?style=for-the-badge&logo=render)](https://churn-guard-u08r.onrender.com/)
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)
 ![React](https://img.shields.io/badge/React-18.3.1-blue?style=for-the-badge&logo=react)
@@ -144,9 +142,3 @@ Feel free to enhance the dashboard by:
 - improving campaign automation
 - connecting real business CRM data
 - integrating more advanced explainability and retention rules
-
----
-
-![Retention Growth](https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80)
-
-> Make churn prediction beautiful, actionable, and business-ready.
